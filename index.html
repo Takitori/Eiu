@@ -1,0 +1,151 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hành Trình Yêu | Album Kỷ Niệm</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+</head>
+<body class="overflow-x-hidden theme-transition">
+    <!-- GIF Background -->
+    <img src="background.gif" id="bgImage" class="video-background" alt="Background GIF">
+    <div class="overlay" id="overlay"></div>
+    
+    <!-- Audio Element -->
+    <audio id="bgMusic" loop>
+        <source src="assets/nhacnen.mp3" type="audio/mpeg">
+        Trình duyệt của bạn không hỗ trợ âm thanh.
+    </audio>
+    
+    <!-- Control Buttons -->
+    <div class="control-buttons">
+        <div id="reloadBtn" class="control-btn" title="Tải lại trang">
+            <i class="fas fa-redo text-white"></i>
+        </div>
+        <div id="themeToggleBtn" class="control-btn" title="Chế độ sáng/tối">
+            <i class="fas fa-moon text-white"></i>
+        </div>
+        <div id="musicToggleBtn" class="control-btn" title="Bật/tắt nhạc nền">
+            <i class="fas fa-music text-white"></i>
+        </div>
+        <div id="imageToggle" class="control-btn" title="Bật/tắt nền GIF">
+            <i class="fas fa-image text-white"></i>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="min-h-screen flex flex-col items-center px-4 py-8 md:py-16 fade-in">
+        <!-- Header -->
+        <div class="text-center mb-8 md:mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-white header-text mb-2">Hành Trình Yêu</h1>
+            <p class="text-xl md:text-2xl text-pink-200 subheader-text">Mỗi khoảnh khắc bên em đều quý giá</p>
+            <div class="mt-4 flex justify-center">
+                <div class="w-16 h-1 bg-pink-400 rounded-full"></div>
+            </div>
+        </div>
+        
+        <!-- Filter Controls -->
+        <div class="mb-8 w-full max-w-2xl">
+            <div class="flex flex-wrap justify-center gap-3">
+                <button data-filter="all" class="filter-btn active bg-pink-500 text-white px-4 py-2 rounded-full">Tất cả</button>
+                <button data-filter="image" class="filter-btn bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-full">
+                    <i class="fas fa-image mr-2"></i>Ảnh
+                </button>
+                <button data-filter="video" class="filter-btn bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-full">
+                    <i class="fas fa-video mr-2"></i>Video
+                </button>
+                <button id="shuffleBtn" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-full">
+                    <i class="fas fa-random mr-2"></i>Xáo trộn
+                </button>
+            </div>
+        </div>
+        
+        
+        <!-- Memories Grid -->
+        <div class="w-full max-w-6xl">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-6 px-4" id="memoriesGrid">
+        <!-- Memory items will be added here by JavaScript -->
+        </div>
+        </div>
+        <script src="js/memories.js"></script>
+        
+        <!-- Loading indicator -->
+        <div id="loading" class="my-8 text-white">
+            <i class="fas fa-spinner fa-spin text-2xl"></i>
+        </div>
+        
+        <!-- Footer -->
+        <div class="mt-12 text-center">
+            <p class="text-white text-opacity-70">Tạo bằng <i class="fas fa-heart text-pink-400"></i> dành cho chúng ta</p>
+            <p class="text-white text-opacity-50 text-sm mt-2">© <span id="year"></span> Hành Trình Yêu của Lily và WinWin</p>
+        </div>
+    </div>
+    
+    <!-- Modal for viewing memories -->
+    <div id="memoryModal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 hidden">
+        <div class="relative max-w-4xl w-full p-4">
+            <button id="closeModal" class="absolute top-4 right-4 text-white text-3xl z-50 hover:text-pink-400 transition">×</button>
+            <div class="bg-transparent rounded-lg overflow-hidden">
+                <img id="modalImage" src="" alt="" class="hidden w-full max-h-[80vh] object-contain">
+                <video id="modalVideo" controls class="hidden w-full max-h-[80vh]">
+                    Trình duyệt của bạn không hỗ trợ video.
+                </video>
+                <div id="modalCaption" class="text-white mt-4 text-center text-lg"></div>
+                <div class="flex justify-center mt-6">
+                    <button id="prevBtn" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-full mx-2">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <button id="nextBtn" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-full mx-2">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
